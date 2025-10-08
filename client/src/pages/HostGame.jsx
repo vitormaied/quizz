@@ -16,6 +16,8 @@ function HostGame() {
   const [quiz, setQuiz] = useState(null);
   const [pollResults, setPollResults] = useState([]);
   const [wordCloudData, setWordCloudData] = useState([]);
+  const [reviewMode, setReviewMode] = useState(false);
+  const [reviewQuestionIndex, setReviewQuestionIndex] = useState(0);
 
   useEffect(() => {
     const code = localStorage.getItem('roomCode');
@@ -116,6 +118,61 @@ function HostGame() {
     if (confirm('Tem certeza que deseja encerrar o jogo?')) {
       navigate('/');
     }
+  };
+
+  const enterReviewMode = () => {
+    setReviewMode(true);
+    setReviewQuestionIndex(0);
+  };
+
+  const exitReviewMode = () => {
+    setReviewMode(false);
+  };
+
+  const navigateReviewQuestion = (direction) => {
+    if (direction === 'prev' && reviewQuestionIndex > 0) {
+      setReviewQuestionIndex(reviewQuestionIndex - 1);
+    } else if (direction === 'next' && reviewQuestionIndex < totalQuestions - 1) {
+      setReviewQuestionIndex(reviewQuestionIndex + 1);
+    }
+  };
+
+  const getQuestionStats = (questionIndex) => {
+    if (!quiz || !players.length) return null;
+
+    const question = quiz.questions[questionIndex];
+    const playersWhoAnswered = players.filter(p =>
+      p.answers && p.answers.some(a => a.questionIndex === questionIndex)
+    );
+
+    const stats = {
+      totalAnswers: playersWhoAnswered.length,
+      correctAnswers: 0,
+      incorrectAnswers: 0,
+      answerDistribution: {}
+    };
+
+    // Inicializar distribuição de respostas
+    if (question.type === 'quiz' || question.type === 'true-false' || question.type === 'poll') {
+      question.options.forEach((_, index) => {
+        stats.answerDistribution[index] = { count: 0, players: [] };
+      });
+    }
+
+    playersWhoAnswered.forEach(player => {
+      const answer = player.answers.find(a => a.questionIndex === questionIndex);
+      if (answer) {
+        if (answer.isCorrect === true) stats.correctAnswers++;
+        if (answer.isCorrect === false) stats.incorrectAnswers++;
+
+        if (answer.answerIndex !== undefined && stats.answerDistribution[answer.answerIndex]) {
+          stats.answerDistribution[answer.answerIndex].count++;
+          stats.answerDistribution[answer.answerIndex].players.push(player.name);
+        }
+      }
+    });
+
+    return stats;
   };
 
   return (
@@ -313,6 +370,13 @@ function HostGame() {
                 </button>
 
                 <button
+                  onClick={enterReviewMode}
+                  className="btn bg-blue-500 hover:bg-blue-600 text-white w-full"
+                >
+                  📊 Revisar Respostas
+                </button>
+
+                <button
                   onClick={nextQuestion}
                   className="btn btn-primary w-full"
                 >
@@ -356,12 +420,165 @@ function HostGame() {
                 ))}
               </div>
 
-              <button
-                onClick={() => navigate('/')}
-                className="btn btn-primary w-full"
-              >
-                Voltar ao Início
-              </button>
+              <div className="space-y-3">
+                <button
+                  onClick={enterReviewMode}
+                  className="btn bg-blue-500 hover:bg-blue-600 text-white w-full"
+                >
+                  📊 Revisar Respostas por Pergunta
+                </button>
+
+                <button
+                  onClick={() => navigate('/')}
+                  className="btn btn-primary w-full"
+                >
+                  Voltar ao Início
+                </button>
+              </div>
+            </div>
+          )}
+
+          {reviewMode && quiz && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">📊 Revisão de Respostas</h2>
+                <button
+                  onClick={exitReviewMode}
+                  className="btn bg-gray-500 hover:bg-gray-600 text-white"
+                >
+                  ✕ Sair da Revisão
+                </button>
+              </div>
+
+              {/* Navegação entre perguntas */}
+              <div className="mb-6 flex items-center justify-between bg-gray-100 p-4 rounded-lg">
+                <button
+                  onClick={() => navigateReviewQuestion('prev')}
+                  disabled={reviewQuestionIndex === 0}
+                  className="btn bg-gray-300 hover:bg-gray-400 text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ← Anterior
+                </button>
+                <span className="font-bold text-lg">
+                  Pergunta {reviewQuestionIndex + 1} de {totalQuestions}
+                </span>
+                <button
+                  onClick={() => navigateReviewQuestion('next')}
+                  disabled={reviewQuestionIndex === totalQuestions - 1}
+                  className="btn bg-gray-300 hover:bg-gray-400 text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Próxima →
+                </button>
+              </div>
+
+              {/* Pergunta e Estatísticas */}
+              {(() => {
+                const question = quiz.questions[reviewQuestionIndex];
+                const stats = getQuestionStats(reviewQuestionIndex);
+
+                return (
+                  <div>
+                    {/* Pergunta */}
+                    <div className="card mb-6">
+                      <div className="mb-4">
+                        <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold mb-2">
+                          {question.type === 'quiz' && '📝 Quiz'}
+                          {question.type === 'true-false' && '✓✗ Verdadeiro ou Falso'}
+                          {question.type === 'poll' && '📊 Enquete'}
+                          {question.type === 'word-cloud' && '☁️ Nuvem de Palavras'}
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-bold mb-4">{question.question}</h3>
+                      {question.image && (
+                        <img
+                          src={question.image}
+                          alt="Pergunta"
+                          className="max-h-48 rounded-lg mb-4 object-contain"
+                        />
+                      )}
+                    </div>
+
+                    {/* Estatísticas */}
+                    {stats && (
+                      <div className="card mb-6">
+                        <h4 className="text-lg font-bold mb-4">📈 Estatísticas</h4>
+                        <div className="grid grid-cols-3 gap-4 mb-6">
+                          <div className="bg-blue-50 p-4 rounded-lg text-center">
+                            <p className="text-3xl font-bold text-blue-600">{stats.totalAnswers}</p>
+                            <p className="text-sm text-gray-600">Respostas</p>
+                          </div>
+                          {question.type !== 'poll' && question.type !== 'word-cloud' && (
+                            <>
+                              <div className="bg-green-50 p-4 rounded-lg text-center">
+                                <p className="text-3xl font-bold text-green-600">{stats.correctAnswers}</p>
+                                <p className="text-sm text-gray-600">Corretas</p>
+                              </div>
+                              <div className="bg-red-50 p-4 rounded-lg text-center">
+                                <p className="text-3xl font-bold text-red-600">{stats.incorrectAnswers}</p>
+                                <p className="text-sm text-gray-600">Incorretas</p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Distribuição de Respostas */}
+                        {question.options && question.options.length > 0 && (
+                          <div>
+                            <h5 className="font-bold mb-3">Distribuição de Respostas:</h5>
+                            <div className="space-y-3">
+                              {question.options.map((option, index) => {
+                                const distribution = stats.answerDistribution[index];
+                                const percentage = stats.totalAnswers > 0
+                                  ? Math.round((distribution.count / stats.totalAnswers) * 100)
+                                  : 0;
+                                const isCorrect = question.correctAnswer === index;
+
+                                return (
+                                  <div key={index} className={`p-3 rounded-lg border-2 ${
+                                    isCorrect ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-white'
+                                  }`}>
+                                    <div className="flex justify-between items-center mb-2">
+                                      <span className="font-semibold">
+                                        {isCorrect && '✓ '}
+                                        {option}
+                                      </span>
+                                      <span className="text-gray-600">
+                                        {distribution.count} ({percentage}%)
+                                      </span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                                      <div
+                                        className={`h-3 rounded-full transition-all ${
+                                          isCorrect ? 'bg-green-500' : 'bg-blue-500'
+                                        }`}
+                                        style={{ width: `${percentage}%` }}
+                                      ></div>
+                                    </div>
+                                    {distribution.players.length > 0 && (
+                                      <details className="text-sm text-gray-600">
+                                        <summary className="cursor-pointer hover:text-gray-800">
+                                          Ver alunos ({distribution.players.length})
+                                        </summary>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                          {distribution.players.map((playerName, idx) => (
+                                            <span key={idx} className="bg-gray-100 px-2 py-1 rounded">
+                                              {playerName}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </details>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
