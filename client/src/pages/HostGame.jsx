@@ -64,6 +64,10 @@ function HostGame() {
       setWordCloudData(words);
     });
 
+    newSocket.on('ranking:update', ({ ranking }) => {
+      setRanking(ranking);
+    });
+
     newSocket.on('game:ended', ({ reason }) => {
       alert(reason);
       navigate('/');
@@ -270,6 +274,35 @@ function HostGame() {
                   </div>
                 )}
               </div>
+
+              {ranking.length > 0 && (
+                <div className="mb-6 bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+                  <h3 className="text-xl font-bold mb-3 text-center">🏆 Ranking Parcial (Top 5)</h3>
+                  <div className="space-y-2">
+                    {ranking.map((player, index) => (
+                      <div
+                        key={index}
+                        className={`flex justify-between p-3 rounded-lg ${
+                          index === 0
+                            ? 'bg-yellow-200 font-bold'
+                            : 'bg-white'
+                        }`}
+                      >
+                        <span>
+                          {index === 0 && '🥇 '}
+                          {index === 1 && '🥈 '}
+                          {index === 2 && '🥉 '}
+                          {index > 2 && `${player.position}º `}
+                          {player.name}
+                        </span>
+                        <span className="font-bold text-purple-600">
+                          {player.score} pts
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <button
