@@ -7,19 +7,11 @@ function CreateQuiz() {
   const [quizTitle, setQuizTitle] = useState('');
   const [questions, setQuestions] = useState([
     {
-      type: 'quiz', // quiz, true-false, poll, word-cloud, short-answer, fill-blank, matching, ordering, slider, multi-select
+      type: 'quiz', // quiz, true-false, poll, word-cloud
       question: '',
       image: null,
       options: ['', '', '', ''],
       correctAnswer: 0,
-      correctAnswers: [], // Para multi-select
-      pairs: [], // Para matching: [{left: '', right: ''}]
-      correctOrder: [], // Para ordering
-      blanks: [], // Para fill-blank: [{text: '', answer: ''}]
-      sliderMin: 0,
-      sliderMax: 10,
-      sliderCorrect: 5,
-      shortAnswerKeywords: [], // Palavras-chave aceitas como corretas
       timeLimit: 20
     }
   ]);
@@ -33,14 +25,6 @@ function CreateQuiz() {
         image: null,
         options: ['', '', '', ''],
         correctAnswer: 0,
-        correctAnswers: [],
-        pairs: [],
-        correctOrder: [],
-        blanks: [],
-        sliderMin: 0,
-        sliderMax: 10,
-        sliderCorrect: 5,
-        shortAnswerKeywords: [],
         timeLimit: 20
       }
     ]);
@@ -86,84 +70,15 @@ function CreateQuiz() {
     setQuestions(newQuestions);
   };
 
-  const addPair = (qIndex) => {
-    const newQuestions = [...questions];
-    newQuestions[qIndex].pairs.push({left: '', right: ''});
-    setQuestions(newQuestions);
-  };
-
-  const updatePair = (qIndex, pairIndex, side, value) => {
-    const newQuestions = [...questions];
-    newQuestions[qIndex].pairs[pairIndex][side] = value;
-    setQuestions(newQuestions);
-  };
-
-  const removePair = (qIndex, pairIndex) => {
-    const newQuestions = [...questions];
-    newQuestions[qIndex].pairs = newQuestions[qIndex].pairs.filter((_, i) => i !== pairIndex);
-    setQuestions(newQuestions);
-  };
-
-  const addBlank = (qIndex) => {
-    const newQuestions = [...questions];
-    if (!newQuestions[qIndex].blanks) newQuestions[qIndex].blanks = [];
-    newQuestions[qIndex].blanks.push({text: '', answer: ''});
-    setQuestions(newQuestions);
-  };
-
-  const updateBlank = (qIndex, blankIndex, field, value) => {
-    const newQuestions = [...questions];
-    newQuestions[qIndex].blanks[blankIndex][field] = value;
-    setQuestions(newQuestions);
-  };
-
-  const removeBlank = (qIndex, blankIndex) => {
-    const newQuestions = [...questions];
-    newQuestions[qIndex].blanks = newQuestions[qIndex].blanks.filter((_, i) => i !== blankIndex);
-    setQuestions(newQuestions);
-  };
-
-  const addKeyword = (qIndex) => {
-    const newQuestions = [...questions];
-    if (!newQuestions[qIndex].shortAnswerKeywords) newQuestions[qIndex].shortAnswerKeywords = [];
-    newQuestions[qIndex].shortAnswerKeywords.push('');
-    setQuestions(newQuestions);
-  };
-
-  const updateKeyword = (qIndex, keywordIndex, value) => {
-    const newQuestions = [...questions];
-    newQuestions[qIndex].shortAnswerKeywords[keywordIndex] = value;
-    setQuestions(newQuestions);
-  };
-
-  const removeKeyword = (qIndex, keywordIndex) => {
-    const newQuestions = [...questions];
-    newQuestions[qIndex].shortAnswerKeywords = newQuestions[qIndex].shortAnswerKeywords.filter((_, i) => i !== keywordIndex);
-    setQuestions(newQuestions);
-  };
-
-  const toggleCorrectAnswer = (qIndex, optionIndex) => {
-    const newQuestions = [...questions];
-    if (!newQuestions[qIndex].correctAnswers) newQuestions[qIndex].correctAnswers = [];
-
-    const index = newQuestions[qIndex].correctAnswers.indexOf(optionIndex);
-    if (index > -1) {
-      newQuestions[qIndex].correctAnswers.splice(index, 1);
-    } else {
-      newQuestions[qIndex].correctAnswers.push(optionIndex);
-    }
-    setQuestions(newQuestions);
-  };
-
   const handleTypeChange = (qIndex, newType) => {
     const newQuestions = [...questions];
     newQuestions[qIndex].type = newType;
 
-    // Ajustar campos baseado no tipo
+    // Ajustar opções baseado no tipo
     if (newType === 'true-false') {
       newQuestions[qIndex].options = ['Verdadeiro', 'Falso'];
       newQuestions[qIndex].correctAnswer = 0;
-    } else if (newType === 'word-cloud' || newType === 'short-answer' || newType === 'fill-blank') {
+    } else if (newType === 'word-cloud') {
       newQuestions[qIndex].options = [];
       newQuestions[qIndex].correctAnswer = null;
     } else if (newType === 'poll') {
@@ -171,22 +86,6 @@ function CreateQuiz() {
       if (newQuestions[qIndex].options.length < 2) {
         newQuestions[qIndex].options = ['', ''];
       }
-    } else if (newType === 'matching') {
-      newQuestions[qIndex].pairs = [{left: '', right: ''}, {left: '', right: ''}];
-      newQuestions[qIndex].options = [];
-    } else if (newType === 'ordering') {
-      newQuestions[qIndex].options = ['', '', ''];
-      newQuestions[qIndex].correctOrder = [0, 1, 2];
-    } else if (newType === 'slider') {
-      newQuestions[qIndex].options = [];
-      newQuestions[qIndex].sliderMin = 0;
-      newQuestions[qIndex].sliderMax = 10;
-      newQuestions[qIndex].sliderCorrect = 5;
-    } else if (newType === 'multi-select') {
-      if (newQuestions[qIndex].options.length < 4) {
-        newQuestions[qIndex].options = ['', '', '', ''];
-      }
-      newQuestions[qIndex].correctAnswers = [];
     } else if (newType === 'quiz') {
       if (newQuestions[qIndex].options.length < 4) {
         newQuestions[qIndex].options = ['', '', '', ''];
@@ -284,27 +183,12 @@ function CreateQuiz() {
                         onChange={(e) => handleTypeChange(qIndex, e.target.value)}
                         className="input"
                       >
-                        <optgroup label="Escolha Única">
-                          <option value="quiz">📝 Quiz (Múltipla Escolha)</option>
-                          <option value="true-false">✓✗ Verdadeiro ou Falso</option>
-                        </optgroup>
-                        <optgroup label="Múltiplas Respostas">
-                          <option value="multi-select">☑️ Seleção Múltipla</option>
-                        </optgroup>
-                        <optgroup label="Texto Livre">
-                          <option value="short-answer">✍️ Resposta Curta</option>
-                          <option value="fill-blank">📝 Preencher Lacunas</option>
-                          <option value="word-cloud">☁️ Nuvem de Palavras</option>
-                        </optgroup>
-                        <optgroup label="Interativas">
-                          <option value="matching">🔗 Correspondência</option>
-                          <option value="ordering">📊 Ordenação</option>
-                          <option value="slider">🎚️ Escala/Slider</option>
-                        </optgroup>
-                        <optgroup label="Opinião">
-                          <option value="poll">📊 Enquete</option>
-                        </optgroup>
-                      </select>                    </div>
+                        <option value="quiz">📝 Quiz (Múltipla Escolha)</option>
+                        <option value="true-false">✓✗ Verdadeiro ou Falso</option>
+                        <option value="poll">📊 Enquete</option>
+                        <option value="word-cloud">☁️ Nuvem de Palavras</option>
+                      </select>
+                    </div>
 
                     <div>
                       <label className="block text-gray-700 font-semibold mb-2">
