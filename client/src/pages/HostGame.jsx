@@ -29,7 +29,8 @@ function HostGame() {
     setRoomCode(code);
 
     // Conectar ao Socket.IO
-    const newSocket = io('http://localhost:3000');
+    const socketUrl = import.meta.env.PROD ? window.location.origin : 'http://localhost:3000';
+    const newSocket = io(socketUrl);
     setSocket(newSocket);
 
     newSocket.emit('host:join', { roomCode: code });
@@ -79,6 +80,12 @@ function HostGame() {
       return;
     }
 
+    if (!socket) {
+      alert('Erro: Socket não conectado. Tente recarregar a página.');
+      return;
+    }
+
+    console.log('Iniciando jogo...', { roomCode, players: players.length, quiz });
     socket.emit('game:start', { roomCode });
     setGameStatus('playing');
     setQuestionNumber(1);

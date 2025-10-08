@@ -36,7 +36,8 @@ function PlayGame() {
     setPlayerName(name);
 
     // Conectar ao Socket.IO
-    const newSocket = io('http://localhost:3000');
+    const socketUrl = import.meta.env.PROD ? window.location.origin : 'http://localhost:3000';
+    const newSocket = io(socketUrl);
     setSocket(newSocket);
 
     newSocket.emit('player:join', { roomCode: code, playerName: name });

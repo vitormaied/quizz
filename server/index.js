@@ -109,14 +109,25 @@ io.on('connection', (socket) => {
   // Iniciar jogo
   socket.on('game:start', ({ roomCode }) => {
     const game = games.get(roomCode);
+    console.log('game:start recebido', { roomCode, gameExists: !!game, hostMatch: game?.hostId === socket.id });
+
     if (game && game.hostId === socket.id) {
       game.status = 'playing';
       game.currentQuestion = 0;
+
+      console.log('Iniciando jogo:', {
+        roomCode,
+        players: game.players.length,
+        firstQuestion: game.quiz.questions[0]?.question
+      });
+
       io.to(roomCode).emit('game:started', {
         question: game.quiz.questions[0],
         questionNumber: 1,
         totalQuestions: game.quiz.questions.length
       });
+    } else {
+      console.error('Erro ao iniciar jogo:', { roomCode, gameExists: !!game, socketId: socket.id, hostId: game?.hostId });
     }
   });
 
